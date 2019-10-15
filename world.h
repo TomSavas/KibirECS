@@ -1,26 +1,32 @@
 #pragma once
 
-#include <vector>
-#include <unordered_map>
-#include <unordered_set>
 #include <type_traits>
 
 #include "core.h"
 #include "system.h"
+#include "entity.h"
+#include "component_bundle.h"
 
 namespace KibirECS {
     static EntityId entityCounter = 0;
 
     class World {
     private:
+        // primary storage as components need to have layed out next to each other in memory
         Map<ComponentId, Map<EntityId, void*> > m_components;
+        ComponentBundle m_componentBundle;
 
-        Map<SystemId, KibirECS::System*> m_systems;
+        // entity description objects
+        Map<EntityId, Entity*> m_entityDescriptors;
+        Map<SystemId, InternalSystem*> m_systems;
 
     public:
+        World() : m_componentBundle(m_components) { }
+
         ~World() {
             for(auto componentMap : m_components) {
                 for(auto component : componentMap.second) {
+                    // Incorrect, deleting void*
                     delete component.second;
                 }
             }
@@ -30,6 +36,8 @@ namespace KibirECS {
             }
         }
 
+        // Eventually we'll need to separate systems into different sets to be able
+        // to run them in parallel
         void Update(float dt) {
             for(auto system : m_systems) {
                 system.second->Update(dt);
@@ -39,47 +47,13 @@ namespace KibirECS {
         template<typename T> 
         T* AddSystem() {
             T* system = new T();
+            SystemComponents* components = new SystemComponents(m_componentBundle.GetComponents(system->GetRequirements()));
 
-            std::unordered_set<EntityId> requiredEntities;
-            for(auto componentId : system->m_requirements) {
-
-                if(requiredEntities.size() == 0) {
-                    for(auto components : m_components[componentId]) {
-                        requiredEntities.insert(components.first);
-                    }
-                } else {
-                    std::unordered_set<EntityId> potentiallyRequiredEntities;
-
-                    for(auto components : m_components[componentId]) {
-                        if(requiredEntities.find(components.first) != requiredEntities.end()) {
-                            potentiallyRequiredEntities.insert(components.first);
-                        }
-                    }
-                    
-                    requiredEntities = potentiallyRequiredEntities;
-                }
-            }
-
-            for(auto componentId : system->m_requirements) {
-                Map<EntityId, void*> components;
-
-                for(auto entityId : requiredEntities) {
-                    components[entityId] = m_components[componentId][entityId];
-                }
-
-                system->m_components.Add(componentId, components);
-            }
+            system->BindWorld(this);
+            system->BindComponents(components);
 
             m_systems[T::Id()] = system;
-
             return system;
-        }
-
-        template<typename T>
-        void RemoveSystem() {
-            delete m_systems[T::Id()];
-
-            m_systems.erase(T::Id());
         }
 
         template<typename T>
@@ -87,23 +61,57 @@ namespace KibirECS {
             return m_systems[T::Id()];
         }
 
+        template<typename T>
+        void RemoveSystem() {
+            //mem leak because of system components
+            delete m_systems[T::Id()];
+
+            m_systems.erase(T::Id());
+        }
+
         EntityId CreateEntity() {
-            return entityCounter++;
+            m_entityDescriptors[entityCounter] = new Entity(entityCounter);
+
+            return m_entityDescriptors[entityCounter++]->Id();
+        }
+
+        void RemoveEntity(EntityId id) {
+            auto entity = m_entityDescriptors[id];
+            auto components = entity->GetComponents();
+
+            for(int i = 0; i < components.size(); i++) {
+                if(components[i]) {
+                    m_componentBundle.RemoveComponent(entity, i);
+                    
+                    // call destructor?
+                    void* componentToDelete = m_components[i][id];
+                    delete componentToDelete;
+                    m_components[i].erase(id);
+                }
+            }
+
+            delete entity;
+            m_entityDescriptors.erase(id);
         }
 
         template<typename T>
         T* AddComponent(EntityId id) {
-            auto component = new T();
-
+            T* component = new T();
             m_components[T::Id()][id] = component;
+            m_entityDescriptors[id]->AddComponent<T>();
+            m_componentBundle.AddComponent<T>(component, m_entityDescriptors[id]);
 
             return component;
         }
 
         template<typename T>
         void RemoveComponent(EntityId id) {
-            delete m_components[T::Id()][id];
-            m_components[T::Id()].erase(id);
+            m_componentBundle.RemoveComponent<T>(m_entityDescriptors[id]);
+            m_entityDescriptors[id]->RemoveComponent<T>();
+
+            m_components[T::Id()].remove(id);
+            T* componentToDelete = static_cast<T*>(m_components[T::Id()][id]);
+            delete componentToDelete;
         }
 
         template<typename T>
@@ -112,7 +120,7 @@ namespace KibirECS {
         }
 
         template<typename T>
-        std::unordered_map<EntityId, void*> GetComponents() {
+        Map<EntityId, void*>& GetComponents() {
             return m_components[T::Id()];
         }
     };
