@@ -4,37 +4,67 @@
 
 #include "core.h"
 #include "system_components.h"
+#include "counter.h"
 
 namespace KibirECS {
     class World;
 
-    class System {
+    class InternalSystem { 
     private:
-        std::vector<ComponentId> m_requirements;   
+        std::vector<bool> m_requirements;   
 
         friend World;
 
     protected:
-        SystemComponents m_components;
+        SystemComponents* m_components;
+        World* m_world;
 
     public:
+        // No template magic here, just gives a nice syntax from system's perspective
         template<typename T = void, typename... Components>
         void RequireComponents();
 
-        virtual ~System() {}
+        virtual ~InternalSystem() {}
 
-        virtual void Update(float dt) = 0;
+        virtual void Update(float dt) {}
 
         virtual void OnEnable() {}
         virtual void OnDisable() {}
+
+        void BindWorld(World* world) {
+            m_world = world;
+        }
+
+        void BindComponents(SystemComponents* components) {
+            m_components = components;
+        }
+
+        const std::vector<bool>& GetRequirements() {
+            return m_requirements;
+        }
     };
 
     template<typename T, typename... Components>
-    void KibirECS::System::RequireComponents() {
-        m_requirements.push_back(T::Id());
+    void KibirECS::InternalSystem::RequireComponents() {
+        if(m_requirements.empty()) {
+            m_requirements = std::vector<bool>(Register<InternalComponent>::value.size(), false);
+        }
+
+        m_requirements[T::Id()] = true;
         RequireComponents<Components...>();
     }
 
     template<>
-    void KibirECS::System::RequireComponents<>() {}
+    void KibirECS::InternalSystem::RequireComponents<>() {}
+
+    template<typename TDerived>
+    class System : public Registrator<InternalSystem, TDerived>, public InternalSystem {
+    public:
+        virtual ~System() {}
+        
+        static int Id() {
+            static int internalId = Counter<InternalSystem>::value++;
+            return internalId;
+        }
+    };
 }
