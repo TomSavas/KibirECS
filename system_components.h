@@ -5,29 +5,22 @@
 namespace KibirECS {
     class SystemComponents {
         private:
-            Map<ComponentId, Map<EntityId, void*> > m_components;
+            Map<ComponentId, Map<EntityId, void*>>* m_components;
 
         public:
 
-        SystemComponents() {}
+        SystemComponents(Map<ComponentId, Map<EntityId, void*>>* components) {
+            m_components = components;
+        }
         
-        template<typename T>
-        T* Get(EntityId id) {
-            return static_cast<T*>(m_components[T::Id()][id]);
+        template<typename TComponent>
+        Map<EntityId, void*>* Get() {
+            return &(m_components->operator[](TComponent::Id()));
         }
 
-        template<typename T>
-        Map<EntityId, void*> Get() {
-            return m_components[T::Id()];
-        }
-
-        template<typename T>
-        void Add(Map<EntityId, void*> entityComponentMap) {
-            m_components[T::Id()] = entityComponentMap;
-        }
-
-        void Add(ComponentId componentId, Map<EntityId, void*> entityComponentMap) {
-            m_components[componentId] = entityComponentMap;
+        template<typename TComponent>
+        TComponent* Get(EntityId id) {
+            return static_cast<TComponent*>(Get<TComponent>()->operator[](id));
         }
     };
 }
