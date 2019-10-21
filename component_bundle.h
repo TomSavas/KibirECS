@@ -52,7 +52,8 @@ namespace KibirECS {
 
         void RemoveComponent(Entity* entity, ComponentId componentId) {
             for(auto it = m_componentContainers.begin(); it != m_componentContainers.end(); it++) {
-                if(it->first[componentId]) {
+                if(it->first[componentId] && it->second[componentId].find(entity->Id()) != it->second[componentId].end()) {
+                    printf("removing component with id: %d\n", componentId);
                     it->second[componentId].erase(entity->Id());
                 }
             }
