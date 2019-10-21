@@ -76,17 +76,19 @@ public:
     virtual void Update(float dt) override {
         auto healthComponents = m_components->Get<HealthComponent>();
 
+        std::vector<KibirECS::EntityId> entitiesToRemove;
+
         for(auto it = healthComponents->begin(); it != healthComponents->end(); it++) {
             if(static_cast<HealthComponent*>(it->second)->percentage <= 0) {
-                // This currently causes a seg fault. Entity/component creation/deletionn 
-                // should probably be deferred until updates finish
-                //EntityId entityId = m_world->CreateEntity();
-                //m_world->AddComponent<HealthComponent>(entityId);
-                //m_world->AddComponent<RegenComponent>(entityId);
-                //m_world->AddComponent<RandomDamageComponent>(entityId);
-
-                m_world->RemoveEntity(it->first);
+                static_cast<HealthComponent*>(it->second)->percentage = -100;
+                entitiesToRemove.push_back(it->first);
             }
+        }
+
+        // Ah, stupid mistake, I removed entities while looping through them. It resulted in segfault...
+        // Need to implement a system for deferred adding/removing entities after the current update cycle has ended
+        for(int i = 0; i < entitiesToRemove.size(); i++) {
+            m_world->RemoveEntity(entitiesToRemove[i]);
         }
     }
 };
@@ -118,7 +120,8 @@ int main() {
     printf("registered component count: %d\n", KibirECS::Register<KibirECS::InternalComponent>::value.size());
 
     KibirECS::EntityId playerId = world.CreateEntity();
-    world.AddComponent<HealthComponent>(playerId);
+    auto zerothHealthComp = world.AddComponent<HealthComponent>(playerId);
+    zerothHealthComp->percentage = 0.05;
     world.AddComponent<RegenComponent>(playerId);
     world.AddComponent<RandomDamageComponent>(playerId);
 
@@ -145,6 +148,4 @@ int main() {
 
         usleep(100000);
     }
-
-    return 0;
 }
