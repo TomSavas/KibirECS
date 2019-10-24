@@ -10,6 +10,7 @@ namespace KibirECS {
     };
 
     template<typename TGroup, typename TObject>
-    bool Registrator<TGroup, TObject>::m_registered = KibirECS::Register<TGroup>::value.insert(TObject::Id()).second;
+    bool Registrator<TGroup, TObject>::m_registered = KibirECS::Register<TGroup>
+        ::value.insert(TObject::Id()).second;
 }
 
