@@ -18,7 +18,7 @@ namespace KibirECS {
 
         // entity description objects
         Map<EntityId, Entity*> m_entityDescriptors;
-        Map<SystemId, InternalSystem*> m_systems;
+        Map<SystemId, ISystem*> m_systems;
 
     public:
         World() : m_componentBundle(m_components) { }
