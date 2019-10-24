@@ -17,7 +17,7 @@ namespace KibirECS {
         friend World;
     public:
         Entity(EntityId id) : m_Id(id) {
-            m_components = std::vector<bool>(KibirECS::Register<InternalComponent>::value.size(), false);
+            m_components = std::vector<bool>(KibirECS::Register<Internal::RegisterIdentifiers::Component>::value.size(), false);
         }
 
         EntityId Id() { return m_Id; }

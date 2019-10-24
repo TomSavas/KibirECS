@@ -5,20 +5,24 @@
 #include "registrator.h"
 
 namespace KibirECS {
+    namespace Internal::RegisterIdentifiers {
+        class Component {};
+    }
+
     class InternalComponent {
     public:
         virtual ~InternalComponent() {}
     };
 
     template<typename T>
-    class Component : public Registrator<InternalComponent, T>, public InternalComponent {
+    class Component : public Registrator<Internal::RegisterIdentifiers::Component, T>, public InternalComponent {
     public:
         virtual ~Component() {
-            Registrator<InternalComponent, T>::m_registered;
+            Registrator<Internal::RegisterIdentifiers::Component, T>::m_registered;
         }
 
         static int Id() {
-            static int internalId = Counter<InternalComponent>::value++;
+            static int internalId = Counter<Internal::RegisterIdentifiers::Component>::value++;
             return internalId;
         }
     };

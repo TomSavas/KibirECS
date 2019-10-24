@@ -117,7 +117,7 @@ int main() {
     world.AddSystem<HealthReportSystem>();
     world.AddSystem<DeathSystem>();
 
-    printf("registered component count: %d\n", KibirECS::Register<KibirECS::InternalComponent>::value.size());
+    printf("registered component count: %d\n", KibirECS::Register<KibirECS::Internal::RegisterIdentifiers::Component>::value.size());
 
     KibirECS::EntityId playerId = world.CreateEntity();
     auto zerothHealthComp = world.AddComponent<HealthComponent>(playerId);

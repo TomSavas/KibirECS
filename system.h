@@ -9,6 +9,10 @@
 namespace KibirECS {
     class World;
 
+    namespace Internal::RegisterIdentifiers {
+        class System {};
+    }
+
     class InternalSystem { 
     private:
         std::vector<bool> m_requirements;   
@@ -47,7 +51,7 @@ namespace KibirECS {
     template<typename T, typename... Components>
     void KibirECS::InternalSystem::RequireComponents() {
         if(m_requirements.empty()) {
-            m_requirements = std::vector<bool>(Register<InternalComponent>::value.size(), false);
+            m_requirements = std::vector<bool>(Register<Internal::RegisterIdentifiers::Component>::value.size(), false);
         }
 
         m_requirements[T::Id()] = true;
@@ -58,12 +62,12 @@ namespace KibirECS {
     void KibirECS::InternalSystem::RequireComponents<>() {}
 
     template<typename TDerived>
-    class System : public Registrator<InternalSystem, TDerived>, public InternalSystem {
+    class System : public Registrator<Internal::RegisterIdentifiers::System, TDerived>, public InternalSystem {
     public:
         virtual ~System() {}
         
         static int Id() {
-            static int internalId = Counter<InternalSystem>::value++;
+            static int internalId = Counter<Internal::RegisterIdentifiers::System>::value++;
             return internalId;
         }
     };
