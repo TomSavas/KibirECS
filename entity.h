@@ -7,17 +7,16 @@
 #include "component.h"
 
 namespace KibirECS {
-    class World;
-
     class Entity {
     private:
-        std::vector<bool> m_components;
         EntityId m_Id;
+        std::vector<bool> m_components;
 
-        friend World;
     public:
         Entity(EntityId id) : m_Id(id) {
-            m_components = std::vector<bool>(KibirECS::Register<Internal::RegisterIdentifiers::Component>::value.size(), false);
+            m_components = std::vector<bool>(
+                    KibirECS::Register<Internal::RegisterIdentifiers::Component>::value.size(),
+                    false);
         }
 
         EntityId Id() { return m_Id; }
@@ -31,6 +30,10 @@ namespace KibirECS {
             m_components[T::Id()] = true;
         }
 
+        void AddComponent(ComponentId componentId) {
+            m_components[componentId] = true;
+        }
+
         template<typename T> 
         void RemoveComponent() {
             m_components[T::Id()] = false;
@@ -40,13 +43,13 @@ namespace KibirECS {
             m_components[componentId] = false;
         }
 
-        bool ContainsComponent(ComponentId componentId) {
-            return m_components[componentId];
-        }
-    
         template<typename T> 
         bool ContainsComponent() {
-            return ContainsComponent(T::Id());
+            return m_components[T::Id()];
+        }
+
+        bool ContainsComponent(ComponentId componentId) {
+            return m_components[componentId];
         }
     };
 }
