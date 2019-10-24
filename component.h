@@ -9,16 +9,12 @@ namespace KibirECS {
         class Component {};
     }
 
-    class InternalComponent {
-    public:
-        virtual ~InternalComponent() {}
-    };
-
-    template<typename T>
-    class Component : public Registrator<Internal::RegisterIdentifiers::Component, T>, public InternalComponent {
+    template<typename TDerived>
+    class Component : public Registrator<Internal::RegisterIdentifiers::Component, TDerived> {
     public:
         virtual ~Component() {
-            Registrator<Internal::RegisterIdentifiers::Component, T>::m_registered;
+            // If this is not called, the registrator doesn't actually register the component.
+            Registrator<Internal::RegisterIdentifiers::Component, TDerived>::m_registered;
         }
 
         static int Id() {
