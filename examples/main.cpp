@@ -4,7 +4,7 @@
 #include <time.h>
 #include <cstdlib>
 
-#include "kibir.h"
+#include <KibirECS/kibir.h>
 
 class HealthComponent : public KibirECS::Component<HealthComponent> {
 public:
